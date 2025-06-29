@@ -5,18 +5,13 @@ import Banner from './components/Banner';
 import AboutUs from './components/AboutUs';
 import Doctors from './components/Doctors';
 import Clinics from './components/Clinics';
-import Appointments from './components/Appointments';
-import Patients from './components/Patients';
-import UserInfo from './components/UserInfo';
 import Footer from './components/Footer';
-import { getDoctors, getClinics, getDoctorRatings, getAppointments, getPatients, getUserInfo } from './services/api';
+import Chatbot from './components/Chatbot';
+import { getDoctors, getClinics, getDoctorRatings } from './services/api';
 
 function App() {
   const [doctors, setDoctors] = useState([]);
   const [clinics, setClinics] = useState([]);
-  const [appointments, setAppointments] = useState([]);
-  const [patients, setPatients] = useState([]);
-  const [userInfo, setUserInfo] = useState({});
   const [ratings, setRatings] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,32 +20,22 @@ function App() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [doctorsResponse, clinicsResponse, appointmentsResponse, patientsResponse, userInfoResponse] =
-          await Promise.all([
-            getDoctors(),
-            getClinics(),
-            getAppointments(),
-            getPatients(),
-            getUserInfo(),
-          ]);
+        const [doctorsResponse, clinicsResponse] = await Promise.all([
+          getDoctors(),
+          getClinics(),
+        ]);
 
         if (doctorsResponse.error) throw new Error('Failed to fetch doctors');
         if (clinicsResponse.error) throw new Error('Failed to fetch clinics');
-        if (appointmentsResponse.error) throw new Error('Failed to fetch appointments');
-        if (patientsResponse.error) throw new Error('Failed to fetch patients');
-        if (userInfoResponse.error) throw new Error('Failed to fetch user info');
 
-        setDoctors(Array.isArray(doctorsResponse.data.data) ? doctorsResponse.data.data : doctorsResponse.data || []);
-        setClinics(Array.isArray(clinicsResponse.data.data) ? clinicsResponse.data.data : clinicsResponse.data || []);
-        setAppointments(Array.isArray(appointmentsResponse.data.data) ? appointmentsResponse.data.data : appointmentsResponse.data || []);
-        setPatients(Array.isArray(patientsResponse.data) ? patientsResponse.data : []);
-        setUserInfo(userInfoResponse.data || {});
+        setDoctors(doctorsResponse.data.data || []);
+        setClinics(clinicsResponse.data.data || []);
 
         // Fetch ratings for each doctor
-        const ratingsPromises = (doctorsResponse.data.data || doctorsResponse.data || []).map(doctor =>
+        const ratingsPromises = doctorsResponse.data.data.map(doctor =>
           getDoctorRatings(doctor.id).then(response => ({
             doctorId: doctor.id,
-            ratings: response.error ? [] : (Array.isArray(response.data.data) ? response.data.data : response.data || []),
+            ratings: response.error ? [] : response.data.data,
           }))
         );
         const ratingsData = await Promise.all(ratingsPromises);
@@ -59,6 +44,7 @@ function App() {
           [doctorId]: ratings,
         }), {});
         setRatings(ratingsMap);
+
       } catch (err) {
         setError(err.message);
       } finally {
@@ -112,42 +98,16 @@ function App() {
           <Clinics data={clinics} />
         </motion.section>
         <motion.section
-          id="appointments"
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="mb-16"
-        >
-          <Appointments data={appointments} />
-        </motion.section>
-        <motion.section
-          id="patients"
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="mb-16"
-        >
-          <Patients data={patients} />
-        </motion.section>
-        <motion.section
-          id="user-info"
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.8 }}
-          className="mb-16"
-        >
-          <UserInfo data={userInfo} />
-        </motion.section>
-        <motion.section
           id="about"
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 1.0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
         >
           <AboutUs />
         </motion.section>
       </main>
       <Footer />
+      <Chatbot />
     </div>
   );
 }
